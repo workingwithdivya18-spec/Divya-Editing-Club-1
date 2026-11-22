@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Divya Editing Club</title>
+<style>
+*{box-sizing:border-box;font-family:sans-serif;margin:0;padding:0}
+body{background:#0b0f19;color:#fff;padding-bottom:40px}
+nav{display:flex;justify-content:space-between;align-items:center;padding:12px 15px;background:#131a2a;position:sticky;top:0}
+.logo{color:#6366f1;font-weight:700;font-size:18px}
+.nav-btns button{background:#1e293b;color:#fff;border:none;padding:7px 12px;border-radius:6px;margin-left:5px;cursor:pointer}
+.nav-btns .active,.btn{background:#6366f1;color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:700}
+.hero{text-align:center;padding:20px 15px}
+.hero h1{color:#818cf8;font-size:24px}
+.hero p{color:#94a3b8;font-size:13px;margin-top:5px}
+.card{background:#131a2a;margin:12px;padding:15px;border-radius:12px;border:1px solid #1e293b}
+h3{margin-bottom:12px;font-size:16px}
+.pkgs{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.pkg{background:#0b0f19;padding:10px;border-radius:8px;border:1px solid #334155;cursor:pointer;text-align:center}
+.pkg.sel{border-color:#6366f1;background:#1e1b4b}
+input,select,textarea{width:100%;padding:10px;margin:6px 0;background:#0b0f19;color:#fff;border:1px solid #334155;border-radius:8px}
+.row{display:flex;gap:8px}
+.row button{padding:0 15px;margin:6px 0}
+.total{color:#4ade80;font-size:18px;font-weight:700;margin:10px 0}
+.btn-full{width:100%;padding:12px;font-size:15px}
+.tabs{display:flex;gap:6px;overflow-x:auto;margin-bottom:10px}
+.tabs button{background:#1e293b;color:#cbd5e1;border:none;padding:6px 12px;border-radius:20px;font-size:12px;cursor:pointer}
+.tabs button.active{background:#6366f1;color:#fff}
+.order{background:#0b0f19;padding:10px;border-radius:8px;margin-top:8px;border-left:4px solid #6366f1;font-size:13px}
+.badge{float:right;padding:2px 8px;border-radius:10px;font-size:11px;background:#334155}
+.hide{display:none}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="logo">Divya Editing Club</div>
+  <div class="nav-btns">
+    <button id="tStudio" class="active" onclick="showTab('studio')">Studio</button>
+    <button id="tOwner" onclick="showTab('owner')">Owner</button>
+    <button id="tLogin" onclick="loginUser()">Login</button>
+  </div>
+</nav>
+
+<div class="hero">
+  <h1>Divya Editing Club</h1>
+  <p>Use Code <b>DIVYA20</b> for 20% Off</p>
+</div>
+
+<div id="studio">
+  <div class="card">
+    <h3>Packages</h3>
+    <div class="pkgs">
+      <div class="pkg sel" onclick="pickPkg(this,'Reels Edit',99)"><b>Reels Edit</b><br>₹99</div>
+      <div class="pkg" onclick="pickPkg(this,'Montage Edit',199)"><b>Montage</b><br>₹199</div>
+      <div class="pkg" onclick="pickPkg(this,'Thumbnail',49)"><b>Thumbnail</b><br>₹49</div>
+      <div class="pkg" onclick="pickPkg(this,'Full YT Video',299)"><b>YT Video</b><br>₹299</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Place Order</h3>
+    <input id="cName" placeholder="Full Name *">
+    <input id="cPhone" placeholder="Phone / WhatsApp Number *">
+    <div class="row">
+      <input id="promo" placeholder="Promo (DIVYA20)">
+      <button class="btn" onclick="applyPromo()">Apply</button>
+    </div>
+    <input type="file" id="cFile">
+    <textarea id="cNote" rows="2" placeholder="Editing instructions..."></textarea>
+    <div class="total">Total: ₹<span id="price">99</span></div>
+    <button class="btn btn-full" onclick="sendOrder()">Send Order</button>
+  </div>
+
+  <div class="card">
+    <h3>Order History</h3>
+    <div class="tabs">
+      <button class="active" onclick="filterOrd('All',this)">All</button>
+      <button onclick="filterOrd('Successful',this)">Successful</button>
+      <button onclick="filterOrd('Pending',this)">Pending</button>
+      <button onclick="filterOrd('Denied',this)">Denied</button>
+    </div>
+    <div id="ordList"></div>
+  </div>
+</div>
+
+<div id="owner" class="card hide">
+  <h3>Owner Panel (Manage Orders)</h3>
+  <div id="ownList"></div>
+</div>
+
+<script>
+let basePrice=99, disc=0, pkgName='Reels Edit', curFilter='All';
+let orders=JSON.parse(localStorage.getItem('dec_orders')||'[]');
+
+function showTab(t){
+  if(t==='owner' && prompt('Enter Owner PIN (1234):')!=='1234') return alert('Wrong PIN!');
+  document.getElementById('studio').classList.toggle('hide',t!=='studio');
+  document.getElementById('owner').classList.toggle('hide',t!=='owner');
+  document.getElementById('tStudio').classList.toggle('active',t==='studio');
+  document.getElementById('tOwner').classList.toggle('active',t==='owner');
+  render();
+}
+
+function loginUser(){
+  let n=prompt('Enter your name to login:');
+  if(n){document.getElementById('cName').value=n;document.getElementById('tLogin').innerText=n;}
+}
+
+function pickPkg(el,name,p){
+  document.querySelectorAll('.pkg').forEach(x=>x.classList.remove('sel'));
+  el.classList.add('sel'); pkgName=name; basePrice=p; updatePrice();
+}
+
+function applyPromo(){
+  if(document.getElementById('promo').value.trim().toUpperCase()==='DIVYA20'){
+    disc=0.2; alert('20% Discount Applied!');
+  } else { disc=0; alert('Invalid Promo Code'); }
+  updatePrice();
+}
+
+function updatePrice(){
+  document.getElementById('price').innerText=Math.round(basePrice*(1-disc));
+}
+
+function sendOrder(){
+  let name=document.getElementById('cName').value.trim();
+  let phone=document.getElementById('cPhone').value.trim();
+  if(!name||!phone) return alert('Please fill Name & Phone!');
+  orders.unshift({
+    id:Date.now(), name, phone, pkg:pkgName,
+    price:document.getElementById('price').innerText,
+    note:document.getElementById('cNote').value, status:'Pending'
+  });
+  localStorage.setItem('dec_orders',JSON.stringify(orders));
+  alert('Order Sent Successfully!');
+  document.getElementById('cNote').value='';
+  render();
+}
+
+function filterOrd(f,btn){
+  curFilter=f;
+  document.querySelectorAll('.tabs button').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active'); render();
+}
+
+function setStatus(id,st){
+  let o=orders.find(x=>x.id===id);
+  if(o){o.status=st; localStorage.setItem('dec_orders',JSON.stringify(orders)); render();}
+}
+
+function render(){
+  let list=orders.filter(o=>curFilter==='All'||o.status===curFilter);
+  document.getElementById('ordList').innerHTML=list.length?list.map(o=>
+    `<div class="order"><span class="badge">${o.status}</span><b>${o.name}</b> (${o.pkg})<br>₹${o.price} • ${o.note||'No notes'}</div>`
+  ).join(''):'<p style="color:#64748b;font-size:13px">No orders yet.</p>';
+
+  document.getElementById('ownList').innerHTML=orders.length?orders.map(o=>
+    `<div class="order"><b>${o.name}</b> (${o.phone}) - ${o.pkg} ₹${o.price}<br>Status: <b>${o.status}</b>
+    <div style="margin-top:6px">
+      <button class="btn" style="padding:4px 8px;background:#16a34a" onclick="setStatus(${o.id},'Successful')">Approve</button>
+      <button class="btn" style="padding:4px 8px;background:#dc2626" onclick="setStatus(${o.id},'Denied')">Deny</button>
+    </div></div>`
+  ).join(''):'<p style="color:#64748b">No orders to manage.</p>';
+}
+render();
+</script>
+</body>
+</html>
